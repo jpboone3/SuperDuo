@@ -36,36 +36,27 @@ import barqsoft.footballscores.WidgetProvider;
 /**
  * Created by yehya khaled on 3/2/2015.
  */
-public class myFetchService extends IntentService
-{
-    // cached array of team names/crest to get around
-    // the http 429 response code
-    private class TeamCrest
-    {
-        String team = null;
-        byte[] crest = null;
-    }
+public class myFetchService extends IntentService {
     public static final String LOG_TAG = "myFetchService";
-    private static ArrayList mTeamArray  = new ArrayList();
-    private ArrayList mNextMatches  = null;
+    private static ArrayList mTeamArray = new ArrayList();
+    private ArrayList mNextMatches = null;
     private int m_HTTPResponseCode = 0;
     private int[] allWidgetIds = null;
     private AppWidgetManager appWidgetManager = null;
-    public myFetchService()
-    {
+
+    public myFetchService() {
         super("myFetchService");
     }
 
     @Override
-    protected  void  onHandleIntent(Intent intent)
-    {
+    protected void onHandleIntent(Intent intent) {
 
         appWidgetManager = AppWidgetManager.getInstance(this
                 .getApplicationContext());
         allWidgetIds = intent
                 .getIntArrayExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS);
 
-        for (int i = 0; i < 5;i++) {
+        for (int i = 0; i < 5; i++) {
             // initial didget list view
             if (allWidgetIds != null)
                 mNextMatches = new ArrayList();
@@ -77,8 +68,9 @@ public class myFetchService extends IntentService
 
             if (mNextMatches != null) {
                 StringBuffer sb = new StringBuffer();
-                sb.append("Upcoming matches, tap to refresh list\n");
-                for (int j = 0;j < 10;j++) {
+                sb.append(getResources().getText(R.string.upcoming));
+                sb.append("\n");
+                for (int j = 0; j < 10; j++) {
                     if (mNextMatches.size() <= j)
                         break;
                     String s = (String) mNextMatches.get(j);
@@ -123,15 +115,13 @@ public class myFetchService extends IntentService
 
             if (m_HTTPResponseCode == 429) {
                 SystemClock.sleep(60000);
-            }
-            else
+            } else
                 break;
         }
         return;
     }
 
-    private void getData (String timeFrame)
-    {
+    private void getData(String timeFrame) {
         //Creating fetch URL
         final String BASE_URL = "http://api.football-data.org/alpha/fixtures"; //Base URL
         final String QUERY_TIME_FRAME = "timeFrame"; //Time Frame parameter to determine days
@@ -148,7 +138,7 @@ public class myFetchService extends IntentService
             URL fetch = new URL(fetch_build.toString());
             m_connection = (HttpURLConnection) fetch.openConnection();
             m_connection.setRequestMethod("GET");
-            m_connection.addRequestProperty("X-Auth-Token",getString(R.string.api_key));
+            m_connection.addRequestProperty("X-Auth-Token", getString(R.string.api_key));
             m_connection.connect();
             m_HTTPResponseCode = m_connection.getResponseCode();
 
@@ -178,26 +168,19 @@ public class myFetchService extends IntentService
                 m_connection.disconnect();
                 m_connection = null;
             }
-        }
-        catch (Exception e)
-        {
-            Log.e(LOG_TAG,"Exception here: " + e.getMessage());
-            Log.e(LOG_TAG,"Exception here: " + e.toString());
-        }
-        finally {
-            if (m_connection != null)
-            {
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Exception here: " + e.getMessage());
+            Log.e(LOG_TAG, "Exception here: " + e.toString());
+        } finally {
+            if (m_connection != null) {
                 m_connection.disconnect();
                 m_connection = null;
             }
-            if (reader != null)
-            {
+            if (reader != null) {
                 try {
                     reader.close();
-                }
-                catch (IOException e)
-                {
-                    Log.e(LOG_TAG,"Error Closing Stream");
+                } catch (IOException e) {
+                    Log.e(LOG_TAG, "Error Closing Stream");
                 }
             }
         }
@@ -218,14 +201,12 @@ public class myFetchService extends IntentService
                 //Could not Connect
                 Log.d(LOG_TAG, "Could not connect to server.");
             }
-        }
-        catch(Exception e)
-        {
-            Log.e(LOG_TAG,e.getMessage());
+        } catch (Exception e) {
+            Log.e(LOG_TAG, e.getMessage());
         }
     }
-    private void processJSONdata (String JSONdata,Context mContext, boolean isReal)
-    {
+
+    private void processJSONdata(String JSONdata, Context mContext, boolean isReal) {
         //Log.d(LOG_TAG,JSONdata);
         //JSON data
         // This set of league codes is for the 2015/2016 season. In fall of 2016, they will need to
@@ -277,26 +258,24 @@ public class myFetchService extends IntentService
             JSONArray matches = new JSONObject(JSONdata).getJSONArray(FIXTURES);
 
             //ContentValues to be inserted
-            Vector<ContentValues> values = new Vector <ContentValues> (matches.length());
-            for(int i = 0;i < matches.length();i++)
-            {
+            Vector<ContentValues> values = new Vector<ContentValues>(matches.length());
+            for (int i = 0; i < matches.length(); i++) {
 
                 JSONObject match_data = matches.getJSONObject(i);
                 League = match_data.getJSONObject(LINKS).getJSONObject(SOCCER_SEASON).
                         getString("href");
-                League = League.replace(SEASON_LINK,"");
+                League = League.replace(SEASON_LINK, "");
                 //This if statement controls which leagues we're interested in the data from.
                 //add leagues here in order to have them be added to the DB.
                 // If you are finding no data in the app, check that this contains all the leagues.
                 // If it doesn't, that can cause an empty DB, bypassing the dummy data routine.
 
-                if (League.equals(PREMIER_LEAGUE)      ||
-                        League.equals(SERIE_A)             ||
-                        League.equals(Bundesliga3)             ||
-                        League.equals(BUNDESLIGA1)         ||
-                        League.equals(BUNDESLIGA2)         ||
-                        League.equals(PRIMERA_DIVISION)     )
-                {
+                if (League.equals(PREMIER_LEAGUE) ||
+                        League.equals(SERIE_A) ||
+                        League.equals(Bundesliga3) ||
+                        League.equals(BUNDESLIGA1) ||
+                        League.equals(BUNDESLIGA2) ||
+                        League.equals(PRIMERA_DIVISION)) {
                     home_team = match_data.getJSONObject(LINKS).getJSONObject(HOMETEAM).
                             getString("href");
                     away_team = match_data.getJSONObject(LINKS).getJSONObject(AWAYTEAM).
@@ -319,33 +298,31 @@ public class myFetchService extends IntentService
                     match_id = match_id.replace(MATCH_LINK, "");
                     if (!isReal) {
                         //This if statement changes the match ID of the dummy data so that it all goes into the database
-                        match_id=match_id+Integer.toString(i);
+                        match_id = match_id + Integer.toString(i);
                     }
 
                     mDate = match_data.getString(MATCH_DATE);
                     mTime = mDate.substring(mDate.indexOf("T") + 1, mDate.indexOf("Z"));
-                    mDate = mDate.substring(0,mDate.indexOf("T"));
+                    mDate = mDate.substring(0, mDate.indexOf("T"));
                     SimpleDateFormat match_date = new SimpleDateFormat("yyyy-MM-ddHH:mm:ss");
                     match_date.setTimeZone(TimeZone.getTimeZone("UTC"));
                     try {
-                        Date parseddate = match_date.parse(mDate+mTime);
+                        Date parseddate = match_date.parse(mDate + mTime);
                         SimpleDateFormat new_date = new SimpleDateFormat("yyyy-MM-dd:HH:mm");
                         new_date.setTimeZone(TimeZone.getDefault());
                         mDate = new_date.format(parseddate);
                         mTime = mDate.substring(mDate.indexOf(":") + 1);
-                        mDate = mDate.substring(0,mDate.indexOf(":"));
+                        mDate = mDate.substring(0, mDate.indexOf(":"));
 
-                        if(!isReal){
+                        if (!isReal) {
                             //This if statement changes the dummy data's date to match our current date range.
-                            Date fragmentdate = new Date(System.currentTimeMillis()+((i-2)*86400000));
+                            Date fragmentdate = new Date(System.currentTimeMillis() + ((i - 2) * 86400000));
                             SimpleDateFormat mformat = new SimpleDateFormat("yyyy-MM-dd");
-                            mDate=mformat.format(fragmentdate);
+                            mDate = mformat.format(fragmentdate);
                         }
-                    }
-                    catch (Exception e)
-                    {
+                    } catch (Exception e) {
                         Log.d(LOG_TAG, "error here!");
-                        Log.e(LOG_TAG,e.getMessage());
+                        Log.e(LOG_TAG, e.getMessage());
                     }
                     Home = match_data.getString(HOME_TEAM);
                     Away = match_data.getString(AWAY_TEAM);
@@ -353,15 +330,15 @@ public class myFetchService extends IntentService
                     Away_goals = match_data.getJSONObject(RESULT).getString(AWAY_GOALS);
                     match_day = match_data.getString(MATCH_DAY);
                     ContentValues match_values = new ContentValues();
-                    match_values.put(DatabaseContract.scores_table.MATCH_ID,match_id);
-                    match_values.put(DatabaseContract.scores_table.DATE_COL,mDate);
-                    match_values.put(DatabaseContract.scores_table.TIME_COL,mTime);
-                    match_values.put(DatabaseContract.scores_table.HOME_COL,Home);
-                    match_values.put(DatabaseContract.scores_table.AWAY_COL,Away);
-                    match_values.put(DatabaseContract.scores_table.HOME_GOALS_COL,Home_goals);
-                    match_values.put(DatabaseContract.scores_table.AWAY_GOALS_COL,Away_goals);
-                    match_values.put(DatabaseContract.scores_table.LEAGUE_COL,League);
-                    match_values.put(DatabaseContract.scores_table.MATCH_DAY,match_day);
+                    match_values.put(DatabaseContract.scores_table.MATCH_ID, match_id);
+                    match_values.put(DatabaseContract.scores_table.DATE_COL, mDate);
+                    match_values.put(DatabaseContract.scores_table.TIME_COL, mTime);
+                    match_values.put(DatabaseContract.scores_table.HOME_COL, Home);
+                    match_values.put(DatabaseContract.scores_table.AWAY_COL, Away);
+                    match_values.put(DatabaseContract.scores_table.HOME_GOALS_COL, Home_goals);
+                    match_values.put(DatabaseContract.scores_table.AWAY_GOALS_COL, Away_goals);
+                    match_values.put(DatabaseContract.scores_table.LEAGUE_COL, League);
+                    match_values.put(DatabaseContract.scores_table.MATCH_DAY, match_day);
                     if (home_crest != null)
                         match_values.put(DatabaseContract.scores_table.HOME_CREST, home_crest);
                     if (away_crest != null)
@@ -381,12 +358,14 @@ public class myFetchService extends IntentService
                        matches for the app allWidgetIds
                     */
                     if (mNextMatches != null) {
-                        String mS1 = mDate.substring(5,7) + "/" + mDate.substring(8) + " " + mTime + " ";
+                        String mS1 = mDate.substring(5, 7) + "/" + mDate.substring(8) + " " + mTime + " ";
                         if (Home_goals.equals("-1"))
                             mS1 += "( - )";
                         else
                             mS1 += "(" + Home_goals + " - " + Away_goals + ")";
-                        mS1 += " " + Home + " vs " + Away + "\n";
+                        mS1 += " " + Home + " " +
+                                getResources().getText(R.string.vs)
+                                + " " + Away + "\n";
                         mNextMatches.add(mS1);
                     }
                 }
@@ -395,23 +374,21 @@ public class myFetchService extends IntentService
             ContentValues[] insert_data = new ContentValues[values.size()];
             values.toArray(insert_data);
             inserted_data = mContext.getContentResolver().bulkInsert(
-                    DatabaseContract.BASE_CONTENT_URI,insert_data);
+                    DatabaseContract.BASE_CONTENT_URI, insert_data);
 
             //Log.d(LOG_TAG,"Succesfully Inserted : " + String.valueOf(inserted_data));
-        }
-        catch (JSONException e)
-        {
-            Log.e(LOG_TAG,"JSON E: " + e.getMessage());
+        } catch (JSONException e) {
+            Log.e(LOG_TAG, "JSON E: " + e.getMessage());
         }
 
     }
-    private byte[] getTeamCrest(String team)
-    {
+
+    private byte[] getTeamCrest(String team) {
         if (team == null)
             return null;
         team = team.replaceFirst("alpha/", "");
         // see if we have cached the team/crest
-        for (int i = 0;i < mTeamArray.size(); i++) {
+        for (int i = 0; i < mTeamArray.size(); i++) {
             TeamCrest tc = (TeamCrest) mTeamArray.get(i);
             if (tc.team.equals(team)) {
                 return tc.crest;
@@ -458,26 +435,19 @@ public class myFetchService extends IntentService
                 }
                 JSON_data = buffer.toString();
             }
-        }
-        catch (Exception e)
-        {
-            Log.e(LOG_TAG,"Exception Url: " + e.getMessage());
-            Log.e(LOG_TAG,"Exception Url: " + e.toString());
-        }
-        finally {
-            if (m_connection != null)
-            {
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Exception Url: " + e.getMessage());
+            Log.e(LOG_TAG, "Exception Url: " + e.toString());
+        } finally {
+            if (m_connection != null) {
                 m_connection.disconnect();
                 m_connection = null;
             }
-            if (reader != null)
-            {
+            if (reader != null) {
                 try {
                     reader.close();
-                }
-                catch (IOException e)
-                {
-                    Log.e(LOG_TAG,"Error Closing Stream: " + e.toString());
+                } catch (IOException e) {
+                    Log.e(LOG_TAG, "Error Closing Stream: " + e.toString());
                 }
             }
         }
@@ -493,10 +463,8 @@ public class myFetchService extends IntentService
                 else if (crest_url.equals("none.jpg"))
                     crest_url = null;
             }
-        }
-        catch (Exception e)
-        {
-            Log.e(LOG_TAG,"Exception JSON: " + e.getMessage());
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Exception JSON: " + e.getMessage());
         }
         if (crest_url == null)
             return null;
@@ -540,21 +508,16 @@ public class myFetchService extends IntentService
 
             } catch (Exception e) {
                 Log.e(LOG_TAG, e.getMessage(), e);
-            }
-            finally {
-                if (m_connection != null)
-                {
+            } finally {
+                if (m_connection != null) {
                     m_connection.disconnect();
                     m_connection = null;
                 }
-                if (inputStream != null)
-                {
+                if (inputStream != null) {
                     try {
                         inputStream.close();
-                    }
-                    catch (IOException e)
-                    {
-                        Log.e(LOG_TAG,"Error Closing Stream");
+                    } catch (IOException e) {
+                        Log.e(LOG_TAG, "Error Closing Stream");
                     }
                 }
             }

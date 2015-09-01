@@ -1,153 +1,130 @@
-package com.example.administrator.spotify2;
+package it.jaschke.alexandria;
 
-import android.app.Service;
-import android.content.Intent;
-import android.media.AudioManager;
-import android.media.MediaPlayer;
-import android.os.Binder;
-import android.os.IBinder;
-import android.util.Log;
-import android.widget.MediaController;
+import android.app.Activity;
+import android.database.Cursor;
+import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.EditText;
+import android.widget.ListView;
 
-import java.io.IOException;
-
-/*
- * this service habdles the media player for both
- * AudioActivity and AudioFragment.
- *
- */
-
-public class AudioService extends Service {
-
-    //media player
-    private static MediaPlayer player = null;
-    private static String currSong = " ";
-    //binder
-    private final IBinder musicBind = new AudioBinder();
-    private MediaController mediacontroller = null;
-
-    public void onCreate() {
-        //create the service
-        super.onCreate();
-        //create player
-        player = new MediaPlayer();
-        //initialize
-        player.setAudioStreamType(AudioManager.STREAM_MUSIC);
-        //set listeners
+import it.jaschke.alexandria.api.BookListAdapter;
+import it.jaschke.alexandria.api.Callback;
+import it.jaschke.alexandria.data.AlexandriaContract;
 
 
-        player.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+public class ListOfBooks extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
+
+    private final int LOADER_ID = 10;
+    private BookListAdapter bookListAdapter;
+    private ListView bookList;
+    private int position = ListView.INVALID_POSITION;
+    private EditText searchText;
+
+    public ListOfBooks() {
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+
+        Cursor cursor = getActivity().getContentResolver().query(
+                AlexandriaContract.BookEntry.CONTENT_URI,
+                null, // leaving "columns" null just returns all the columns.
+                null, // cols for "where" clause
+                null, // values for "where" clause
+                null  // sort order
+        );
+
+
+        bookListAdapter = new BookListAdapter(getActivity(), cursor, 0);
+        View rootView = inflater.inflate(R.layout.fragment_list_of_books, container, false);
+        searchText = (EditText) rootView.findViewById(R.id.searchText);
+        rootView.findViewById(R.id.searchButton).setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        ListOfBooks.this.restartLoader();
+                    }
+                }
+        );
+
+        bookList = (ListView) rootView.findViewById(R.id.listOfBooks);
+        bookList.setAdapter(bookListAdapter);
+
+        bookList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
             @Override
-            public void onPrepared(MediaPlayer mp) {
-                //mp.stop();
-                //mp.start();
-                //if (mediacontroller != null)
-                //    mediacontroller.show(0);
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+                Cursor cursor = bookListAdapter.getCursor();
+                if (cursor != null && cursor.moveToPosition(position)) {
+                    ((Callback) getActivity())
+                            .onItemSelected(cursor.getString(cursor.getColumnIndex(AlexandriaContract.BookEntry._ID)));
+                }
             }
         });
-    }
-    public void setMediaController(MediaController mc) {
-        mediacontroller = mc;
-    }
-    public MediaPlayer getMediaPlayer() {
-        return player;
+
+        return rootView;
     }
 
-    //activity will bind to service
-    @Override
-    public IBinder onBind(Intent intent) {
-        return musicBind;
-    }
-
-    //@Override
-    public void start() {
-        if (player != null)
-            player.start();
-    }
-
-    public void pause() {
-        if (player != null)
-            player.pause();
-    }
-
-    public int getDuration() {
-        if (player != null)
-            return player.getDuration();
-        return 0;
-    }
-
-    public int getCurrentPosition() {
-        if (player != null)
-            return player.getCurrentPosition();
-        return 0;
-    }
-
-    public void stop() {
-        if (player != null && player.isPlaying())
-            player.stop();
-    }
-
-    //@Override
-    public int getAudioSessionId() {
-        return player.getAudioSessionId();
-    }
-
-    public void seekTo(int i) {
-        if (player != null)
-            player.seekTo(i);
-    }
-
-    public boolean isPlaying() {
-        if (player != null)
-            return player.isPlaying();
-        return false;
+    private void restartLoader() {
+        getLoaderManager().restartLoader(LOADER_ID, null, this);
     }
 
     @Override
-    public void onDestroy() {
-        if (player != null) {
-            if (player.isPlaying())
-                player.stop();
-            player.release();
-            player = null;
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+
+        final String selection = AlexandriaContract.BookEntry.TITLE + " LIKE ? OR " + AlexandriaContract.BookEntry.SUBTITLE + " LIKE ? ";
+        String searchString = searchText.getText().toString();
+
+        if (searchString.length() > 0) {
+            searchString = "%" + searchString + "%";
+            return new CursorLoader(
+                    getActivity(),
+                    AlexandriaContract.BookEntry.CONTENT_URI,
+                    null,
+                    selection,
+                    new String[]{searchString, searchString},
+                    null
+            );
         }
-        super.onDestroy();
+
+        return new CursorLoader(
+                getActivity(),
+                AlexandriaContract.BookEntry.CONTENT_URI,
+                null,
+                null,
+                null,
+                null
+        );
     }
 
-    //release resources when unbind
     @Override
-    public boolean onUnbind(Intent intent) {
-        return false;
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        bookListAdapter.swapCursor(data);
+        if (position != ListView.INVALID_POSITION) {
+            bookList.smoothScrollToPosition(position);
+        }
     }
 
-    //play a song
-    public void playSong(String song) {
-        //play
-        if (player.isPlaying()) {
-            if (song.equals(currSong)) {
-                // this is probably due to a device rotation
-                // and we do not want to start the same song over
-                return;
-            }
-            player.stop();
-        }
-        player.reset();
-
-        //set the data source
-        try {
-            player.setDataSource(song);
-        } catch (IOException e) {
-            Log.e("MUSIC SERVICE", "Error setting data source", e);
-        }
-        player.prepareAsync();
-        currSong = song;
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        bookListAdapter.swapCursor(null);
     }
 
-
-    //binder
-    public class AudioBinder extends Binder {
-        AudioService getService() {
-            return AudioService.this;
-        }
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        activity.setTitle(R.string.books);
     }
 }
