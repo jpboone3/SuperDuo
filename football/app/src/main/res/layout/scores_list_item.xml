@@ -16,8 +16,8 @@
             android:layout_weight="1"
             android:orientation="vertical">
             <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="@dimen/CrestWidth"
+                android:layout_height="@dimen/CrestHeight"
                 android:layout_gravity="center"
                 android:id="@+id/home_crest"
                 android:contentDescription="@string/cd_crest"/>
