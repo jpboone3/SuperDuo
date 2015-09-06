@@ -51,18 +51,12 @@ public class BookService extends IntentService {
                 fetchBook(ean);
             } else if (DELETE_BOOK.equals(action)) {
                 final String ean = intent.getStringExtra(EAN);
-                deleteBook(ean);
+                //Log,d("BookServiceEAM: " , ean);
+                //deleteBook(ean);
+                if (ean != null && ean.length() == 13) {
+                    getContentResolver().delete(AlexandriaContract.BookEntry.buildBookUri(Long.parseLong(ean)), null, null);
+                }
             }
-        }
-    }
-
-    /**
-     * Handle action Foo in the provided background thread with the provided
-     * parameters.
-     */
-    private void deleteBook(String ean) {
-        if(ean!=null) {
-            getContentResolver().delete(AlexandriaContract.BookEntry.buildBookUri(Long.parseLong(ean)), null, null);
         }
     }
 
@@ -230,4 +224,4 @@ public class BookService extends IntentService {
             values= new ContentValues();
         }
     }
- }
+}

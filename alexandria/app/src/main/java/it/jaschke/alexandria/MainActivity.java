@@ -64,7 +64,7 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
 
         // Set up the drawer.
         navigationDrawerFragment.setUp(R.id.navigation_drawer,
-                    (DrawerLayout) findViewById(R.id.drawer_layout));
+                (DrawerLayout) findViewById(R.id.drawer_layout));
     }
 
     @Override
@@ -91,7 +91,6 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
                 break;
 
         }
-
         fragmentManager.beginTransaction()
                 .replace(R.id.container, nextFragment)
                 .addToBackStack((String) title)
@@ -189,6 +188,20 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
         }
         super.onBackPressed();
     }
+    /* 9/6/2015 Udacity reviewer recommended using this code
+        instead of have the code and moving my code
+        to AddBook.java.
+
+        The code did not add the book once scanned., so
+        I came back to my solution.
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        //calling super, so that the fragment has a shot to handle the result
+        super.onActivityResult(requestCode, resultCode, intent);
+    }
+    */
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent intent) {
         IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, intent);

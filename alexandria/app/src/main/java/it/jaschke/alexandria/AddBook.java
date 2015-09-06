@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
@@ -22,7 +24,6 @@ import android.widget.Toast;
 
 
 import com.google.zxing.integration.android.IntentIntegrator;
-import com.google.zxing.integration.android.IntentResult;
 
 import it.jaschke.alexandria.data.AlexandriaContract;
 import it.jaschke.alexandria.services.BookService;
@@ -46,6 +47,20 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
     public AddBook(){
     }
 
+
+    /* 9/6/2015 Udacity reviewer recommended using this code
+        instead of have the code in MainActivity.java
+
+        The code would scan, but did not save the book.
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, intent);
+        if (scanResult != null) {
+            String isbn = scanResult.getContents();
+            ean.setText(isbn);
+        }
+    }
+    */
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -73,6 +88,12 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
 
             @Override
             public void afterTextChanged(Editable s) {
+                // verify the network is operational
+                if (isConnected() == false) {
+                    Toast.makeText(getActivity(), R.id.no_network, Toast.LENGTH_LONG).show();
+                    return;
+                }
+
                 String ean =s.toString();
                 //catch isbn10 numbers
                 if(ean.length()==10 && !ean.startsWith("978")){
@@ -84,11 +105,13 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
                     return;
                 }
                 //Once we have an ISBN, start a book intent
-                Intent bookIntent = new Intent(getActivity(), BookService.class);
-                bookIntent.putExtra(BookService.EAN, ean);
-                bookIntent.setAction(BookService.FETCH_BOOK);
-                getActivity().startService(bookIntent);
-                AddBook.this.restartLoader();
+                if (isConnected()) {
+                    Intent bookIntent = new Intent(getActivity(), BookService.class);
+                    bookIntent.putExtra(BookService.EAN, ean);
+                    bookIntent.setAction(BookService.FETCH_BOOK);
+                    getActivity().startService(bookIntent);
+                    AddBook.this.restartLoader();
+                }
             }
         });
 
@@ -136,6 +159,19 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
         }
 
         return rootView;
+    }
+
+    private boolean isConnected() {
+        // This should never be false since the main activity will check this first.
+        // If the user is on a phone and on the tracks UI, then set the
+        // phone to airplane mode, then we will test for this situation.
+        ConnectivityManager cm =
+                (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo an = cm.getActiveNetworkInfo();
+        if (an != null && an.isConnectedOrConnecting())
+            return true;
+        else
+            return false;
     }
     public void clickScan(View view)
     {
